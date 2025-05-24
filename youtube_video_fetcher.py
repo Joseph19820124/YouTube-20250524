@@ -5,6 +5,7 @@ YouTube频道视频ID获取工具
 使用YouTube Data API v3获取指定频道的所有视频ID
 """
 
+import os
 import time
 import json
 from typing import List, Optional
@@ -176,10 +177,26 @@ class YouTubeVideoFetcher:
             print(f"保存文件时出错: {e}")
 
 
+def get_api_key():
+    """从环境变量获取API密钥"""
+    api_key = os.getenv('YOUTUBE_API_KEY')
+    if not api_key:
+        print("❌ 请设置环境变量 YOUTUBE_API_KEY")
+        print("设置方法:")
+        print("  Linux/Mac: export YOUTUBE_API_KEY='你的API密钥'")
+        print("  Windows: set YOUTUBE_API_KEY=你的API密钥")
+        print("  PowerShell: $env:YOUTUBE_API_KEY='你的API密钥'")
+        return None
+    return api_key
+
+
 def main():
     """主函数示例"""
-    # 配置信息
-    API_KEY = 'YOUR_API_KEY'  # 替换为你的API密钥
+    # 从环境变量获取API密钥
+    API_KEY = get_api_key()
+    if not API_KEY:
+        return
+    
     CHANNEL_ID = 'UCMUnInmOkrWN4gof9KlhNmQ'  # 李永乐老师的频道ID
     
     # 创建获取器实例
