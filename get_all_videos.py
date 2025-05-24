@@ -4,14 +4,30 @@
 获取完整频道数据示例
 """
 
+import os
 from youtube_video_fetcher import YouTubeVideoFetcher
+
+def get_api_key():
+    """从环境变量获取API密钥"""
+    api_key = os.getenv('YOUTUBE_API_KEY')
+    if not api_key:
+        print("❌ 请设置环境变量 YOUTUBE_API_KEY")
+        print("设置方法:")
+        print("  Linux/Mac: export YOUTUBE_API_KEY='你的API密钥'")
+        print("  Windows: set YOUTUBE_API_KEY=你的API密钥")
+        print("  PowerShell: $env:YOUTUBE_API_KEY='你的API密钥'")
+        return None
+    return api_key
 
 def get_all_channel_videos():
     """获取频道的所有视频"""
     print("=== 获取完整频道数据 ===")
     
-    # 设置你的API密钥
-    API_KEY = 'YOUR_API_KEY'  # 替换为你的实际API密钥
+    # 从环境变量获取API密钥
+    API_KEY = get_api_key()
+    if not API_KEY:
+        return
+    
     fetcher = YouTubeVideoFetcher(API_KEY)
     
     # 李永乐老师频道
@@ -59,7 +75,11 @@ def get_recent_videos(count=50):
     """获取最近的N个视频"""
     print(f"=== 获取最近 {count} 个视频 ===")
     
-    API_KEY = 'YOUR_API_KEY'  # 替换为你的实际API密钥
+    # 从环境变量获取API密钥
+    API_KEY = get_api_key()
+    if not API_KEY:
+        return
+    
     fetcher = YouTubeVideoFetcher(API_KEY)
     
     channel_id = 'UCMUnInmOkrWN4gof9KlhNmQ'
@@ -87,7 +107,7 @@ def get_recent_videos(count=50):
 
 if __name__ == "__main__":
     print("YouTube频道完整数据获取工具")
-    print("请先将 'YOUR_API_KEY' 替换为你的实际API密钥\n")
+    print("🔑 现在使用环境变量 YOUTUBE_API_KEY 获取API密钥\n")
     
     choice = input("选择操作:\n1. 获取所有视频\n2. 获取最近50个视频\n3. 获取最近100个视频\n请输入选择 (1-3): ").strip()
     
