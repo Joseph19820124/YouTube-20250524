@@ -54,6 +54,11 @@ success_count=0
 error_count=0
 total_count={len(video_ids)}
 
+# 记录开始时间
+start_time=$(date)
+echo "🕐 开始时间: $start_time" | tee -a "$log_file"
+echo "=======================================" | tee -a "$log_file"
+
 """
 
     for index, video_id in enumerate(video_ids, 1):
@@ -74,14 +79,15 @@ http_code=$(echo "$response" | tail -n1)
 response_body=$(echo "$response" | head -n -1)
 
 if [ "$http_code" = "200" ]; then
-    echo "✅ 成功: $response_body" | tee -a "$log_file"
+    echo "✅ [{index}] 成功: $response_body" | tee -a "$log_file"
     ((success_count++))
 else
-    echo "❌ 失败 (HTTP $http_code): $response_body" | tee -a "$log_file"
+    echo "❌ [{index}] 失败 (HTTP $http_code): $response_body" | tee -a "$log_file"
     ((error_count++))
 fi
 
-echo "进度: $success_count 成功, $error_count 失败"
+echo "📊 进度: $success_count 成功, $error_count 失败, 剩余 $(( total_count - {index} )) 个"
+echo "⏱️  完成度: $(( {index} * 100 / total_count ))%" | tee -a "$log_file"
 echo "---"
 sleep 1  # 避免请求过于频繁
 
@@ -90,13 +96,16 @@ sleep 1  # 避免请求过于频繁
     script += f"""
 echo "======================================="
 echo "🎉 处理完成！"
-echo "📊 统计结果:"
-echo "   总数: $total_count"
-echo "   成功: $success_count"
-echo "   失败: $error_count"
-echo "   成功率: $(( success_count * 100 / total_count ))%"
+end_time=$(date)
+echo "🕐 结束时间: $end_time" | tee -a "$log_file"
+echo "📊 统计结果:" | tee -a "$log_file"
+echo "   总数: $total_count" | tee -a "$log_file"
+echo "   成功: $success_count" | tee -a "$log_file"
+echo "   失败: $error_count" | tee -a "$log_file"
+echo "   成功率: $(( success_count * 100 / total_count ))%" | tee -a "$log_file"
 echo ""
 echo "📝 详细日志已保存到: $log_file"
+echo "=======================================" | tee -a "$log_file"
 """
 
     return script
@@ -123,10 +132,17 @@ set /a success_count=0
 set /a error_count=0
 set /a total_count={len(video_ids)}
 
+REM 记录开始时间
+echo 🕐 开始时间: %date% %time% >> "%log_file%"
+echo ======================================= >> "%log_file%"
+
 """
 
     for index, video_id in enumerate(video_ids, 1):
         num = str(index).zfill(3)
+        remaining = len(video_ids) - index
+        progress = int((index / len(video_ids)) * 100)
+        
         script += f"""
 REM {num}. 视频ID: {video_id}
 echo [{index}/{len(video_ids)}] 处理视频: {video_id}
@@ -136,16 +152,19 @@ REM 执行curl命令
 curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content-Type: application/json" -d "{{\\"youtube_id\\":\\"{video_id}\\", \\"fetch_only\\": \\"true\\"}}" > temp_response.txt 2>&1
 
 if %errorlevel% equ 0 (
-    echo ✅ 成功
+    echo ✅ [{index}] 成功
+    echo ✅ [{index}] 成功: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a success_count+=1
 ) else (
-    echo ❌ 失败
+    echo ❌ [{index}] 失败
+    echo ❌ [{index}] 失败: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a error_count+=1
 )
 
-echo 进度: %success_count% 成功, %error_count% 失败
+echo 📊 进度: %success_count% 成功, %error_count% 失败, 剩余 {remaining} 个
+echo ⏱️  完成度: {progress}%% >> "%log_file%"
 echo ---
 timeout /t 1 /nobreak >nul
 
@@ -154,12 +173,14 @@ timeout /t 1 /nobreak >nul
     script += f"""
 echo =======================================
 echo 🎉 处理完成！
-echo 📊 统计结果:
-echo    总数: %total_count%
-echo    成功: %success_count%
-echo    失败: %error_count%
-echo.
+echo 🕐 结束时间: %date% %time% >> "%log_file%"
+echo 📊 统计结果: >> "%log_file%"
+echo    总数: %total_count% >> "%log_file%"
+echo    成功: %success_count% >> "%log_file%"
+echo    失败: %error_count% >> "%log_file%"
+echo. >> "%log_file%"
 echo 📝 详细日志已保存到: %log_file%
+echo ======================================= >> "%log_file%"
 del temp_response.txt 2>nul
 pause
 """
@@ -186,10 +207,18 @@ $successCount = 0
 $errorCount = 0
 $totalCount = {len(video_ids)}
 
+# 记录开始时间
+$startTime = Get-Date
+"🕐 开始时间: $startTime" | Add-Content -Path $logFile
+"=======================================" | Add-Content -Path $logFile
+
 """
 
     for index, video_id in enumerate(video_ids, 1):
         num = str(index).zfill(3)
+        remaining = len(video_ids) - index
+        progress = round((index / len(video_ids)) * 100, 1)
+        
         script += f"""
 # {num}. 视频ID: {video_id}
 Write-Host "[{index}/{len(video_ids)}] 处理视频: {video_id}" -ForegroundColor Cyan
@@ -202,17 +231,18 @@ try {{
     
     $response = Invoke-RestMethod -Uri "https://lic.deepsrt.cc/webhook/get-srt-from-provider" -Method POST -Headers $headers -Body $body
     
-    Write-Host "✅ 成功: $response" -ForegroundColor Green
-    Add-Content -Path $logFile -Value "[{index}] {video_id}: SUCCESS - $response"
+    Write-Host "✅ [{index}] 成功: $response" -ForegroundColor Green
+    Add-Content -Path $logFile -Value "✅ [{index}] 成功: $response"
     $successCount++
 }}
 catch {{
-    Write-Host "❌ 失败: $($_.Exception.Message)" -ForegroundColor Red
-    Add-Content -Path $logFile -Value "[{index}] {video_id}: ERROR - $($_.Exception.Message)"
+    Write-Host "❌ [{index}] 失败: $($_.Exception.Message)" -ForegroundColor Red
+    Add-Content -Path $logFile -Value "❌ [{index}] 失败: $($_.Exception.Message)"
     $errorCount++
 }}
 
-Write-Host "进度: $successCount 成功, $errorCount 失败"
+Write-Host "📊 进度: $successCount 成功, $errorCount 失败, 剩余 {remaining} 个"
+Add-Content -Path $logFile -Value "⏱️  完成度: {progress}%"
 Write-Host "---"
 Start-Sleep -Seconds 1
 
@@ -221,6 +251,14 @@ Start-Sleep -Seconds 1
     script += f"""
 Write-Host "======================================="
 Write-Host "🎉 处理完成！" -ForegroundColor Green
+$endTime = Get-Date
+"🕐 结束时间: $endTime" | Add-Content -Path $logFile
+"📊 统计结果:" | Add-Content -Path $logFile
+"   总数: $totalCount" | Add-Content -Path $logFile
+"   成功: $successCount" | Add-Content -Path $logFile
+"   失败: $errorCount" | Add-Content -Path $logFile
+"   成功率: $([math]::Round($successCount / $totalCount * 100, 2))%" | Add-Content -Path $logFile
+
 Write-Host "📊 统计结果:"
 Write-Host "   总数: $totalCount"
 Write-Host "   成功: $successCount"
@@ -228,6 +266,7 @@ Write-Host "   失败: $errorCount"
 Write-Host "   成功率: $([math]::Round($successCount / $totalCount * 100, 2))%"
 Write-Host ""
 Write-Host "📝 详细日志已保存到: $logFile" -ForegroundColor Yellow
+"=======================================" | Add-Content -Path $logFile
 Read-Host "按回车键退出"
 """
 
@@ -236,7 +275,7 @@ Read-Host "按回车键退出"
 def save_scripts(bash_script, windows_script, powershell_script, total_videos):
     """保存脚本到文件"""
     
-    # 保存Bash脚本 - 修复newline问题
+    # 保存Bash脚本
     with open('download_srt_batch.sh', 'w', encoding='utf-8') as f:
         f.write(bash_script)
     print(f"✅ 已生成 download_srt_batch.sh (Linux/Mac)")
@@ -255,9 +294,15 @@ def save_scripts(bash_script, windows_script, powershell_script, total_videos):
 🎉 脚本生成完成！共包含 {total_videos} 个视频的curl命令
 
 📋 使用方法:
-  Linux/Mac:   chmod +x download_srt_batch.sh && ./download_srt_batch.sh
+  Linux/Mac:   chmod +x download_srt_batch.sh && nohup ./download_srt_batch.sh > srt_download.log 2>&1 &
   Windows:     download_srt_batch.bat
   PowerShell:  PowerShell -ExecutionPolicy Bypass -File download_srt_batch.ps1
+
+📊 输出示例:
+  ✅ [156] 成功: {{"status": "success"}}
+  ❌ [157] 失败 (HTTP 500): {{"error": "timeout"}}
+  📊 进度: 155 成功, 2 失败, 剩余 201 个
+  ⏱️  完成度: 44%
 
 ⚠️  注意事项:
   - 请确保网络连接稳定
