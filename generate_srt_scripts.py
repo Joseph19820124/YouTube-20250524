@@ -79,10 +79,10 @@ http_code=$(echo "$response" | tail -n1)
 response_body=$(echo "$response" | head -n -1)
 
 if [ "$http_code" = "200" ]; then
-    echo "✅ [{index}] 成功: $response_body" | tee -a "$log_file"
+    echo "✅ [{index}] 成功: $response_body [$(date '+%Y-%m-%d %H:%M:%S')]" | tee -a "$log_file"
     ((success_count++))
 else
-    echo "❌ [{index}] 失败 (HTTP $http_code): $response_body" | tee -a "$log_file"
+    echo "❌ [{index}] 失败 (HTTP $http_code): $response_body [$(date '+%Y-%m-%d %H:%M:%S')]" | tee -a "$log_file"
     ((error_count++))
 fi
 
@@ -149,16 +149,16 @@ echo [{index}/{len(video_ids)}] 处理视频: {video_id}
 echo 🔗 YouTube链接: https://www.youtube.com/watch?v={video_id}
 
 REM 执行curl命令
-curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content-Type: application/json" -d "{{\\"youtube_id\\":\\"{video_id}\\", \\"fetch_only\\": \\"true\\"}}" > temp_response.txt 2>&1
+curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content-Type: application/json" -d "{{\\\"youtube_id\\\":\\\"{video_id}\\\", \\\"fetch_only\\\": \\\"true\\\"}}" > temp_response.txt 2>&1
 
 if %errorlevel% equ 0 (
-    echo ✅ [{index}] 成功
-    echo ✅ [{index}] 成功: >> "%log_file%"
+    echo ✅ [{index}] 成功 [%date% %time%]
+    echo ✅ [{index}] 成功 [%date% %time%]: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a success_count+=1
 ) else (
-    echo ❌ [{index}] 失败
-    echo ❌ [{index}] 失败: >> "%log_file%"
+    echo ❌ [{index}] 失败 [%date% %time%]
+    echo ❌ [{index}] 失败 [%date% %time%]: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a error_count+=1
 )
@@ -231,13 +231,15 @@ try {{
     
     $response = Invoke-RestMethod -Uri "https://lic.deepsrt.cc/webhook/get-srt-from-provider" -Method POST -Headers $headers -Body $body
     
-    Write-Host "✅ [{index}] 成功: $response" -ForegroundColor Green
-    Add-Content -Path $logFile -Value "✅ [{index}] 成功: $response"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Host "✅ [{index}] 成功: $response [$timestamp]" -ForegroundColor Green
+    Add-Content -Path $logFile -Value "✅ [{index}] 成功: $response [$timestamp]"
     $successCount++
 }}
 catch {{
-    Write-Host "❌ [{index}] 失败: $($_.Exception.Message)" -ForegroundColor Red
-    Add-Content -Path $logFile -Value "❌ [{index}] 失败: $($_.Exception.Message)"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Host "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp]" -ForegroundColor Red
+    Add-Content -Path $logFile -Value "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp]"
     $errorCount++
 }}
 
@@ -299,8 +301,8 @@ def save_scripts(bash_script, windows_script, powershell_script, total_videos):
   PowerShell:  PowerShell -ExecutionPolicy Bypass -File download_srt_batch.ps1
 
 📊 输出示例:
-  ✅ [156] 成功: {{"status": "success"}}
-  ❌ [157] 失败 (HTTP 500): {{"error": "timeout"}}
+  ✅ [156] 成功: {{"status": "success"}} [2025-05-25 15:30:42]
+  ❌ [157] 失败 (HTTP 500): {{"error": "timeout"}} [2025-05-25 15:30:43]
   📊 进度: 155 成功, 2 失败, 剩余 201 个
   ⏱️  完成度: 44%
 
