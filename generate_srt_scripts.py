@@ -38,14 +38,14 @@ def generate_bash_script(video_ids):
     script = f"""#!/bin/bash
 # YouTube SRT批量获取脚本 (Bash版本)
 # 总共 {len(video_ids)} 个视频
-# 生成时间: $(date)
+# 生成时间: $(TZ='Asia/Shanghai' date)
 
 echo "🚀 开始处理 {len(video_ids)} 个YouTube视频的SRT..."
 echo "======================================="
 echo ""
 
 # 创建日志文件
-log_file="srt_download_$(date +%Y%m%d_%H%M%S).log"
+log_file="srt_download_$(TZ='Asia/Shanghai' date +%Y%m%d_%H%M%S).log"
 echo "📝 日志文件: $log_file"
 echo ""
 
@@ -55,7 +55,7 @@ error_count=0
 total_count={len(video_ids)}
 
 # 记录开始时间
-start_time=$(date)
+start_time=$(TZ='Asia/Shanghai' date)
 echo "🕐 开始时间: $start_time" | tee -a "$log_file"
 echo "=======================================" | tee -a "$log_file"
 
@@ -79,10 +79,10 @@ http_code=$(echo "$response" | tail -n1)
 response_body=$(echo "$response" | head -n -1)
 
 if [ "$http_code" = "200" ]; then
-    echo "✅ [{index}] 成功: $response_body [$(date '+%Y-%m-%d %H:%M:%S')]" | tee -a "$log_file"
+    echo "✅ [{index}] 成功: $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
     ((success_count++))
 else
-    echo "❌ [{index}] 失败 (HTTP $http_code): $response_body [$(date '+%Y-%m-%d %H:%M:%S')]" | tee -a "$log_file"
+    echo "❌ [{index}] 失败 (HTTP $http_code): $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
     ((error_count++))
 fi
 
@@ -96,7 +96,7 @@ sleep 1  # 避免请求过于频繁
     script += f"""
 echo "======================================="
 echo "🎉 处理完成！"
-end_time=$(date)
+end_time=$(TZ='Asia/Shanghai' date)
 echo "🕐 结束时间: $end_time" | tee -a "$log_file"
 echo "📊 统计结果:" | tee -a "$log_file"
 echo "   总数: $total_count" | tee -a "$log_file"
@@ -121,9 +121,14 @@ echo 🚀 开始处理 {len(video_ids)} 个YouTube视频的SRT...
 echo =======================================
 echo.
 
+REM 设置中国时区 (UTC+8)
+REM 获取UTC+8时间
+for /f "tokens=1-3 delims=." %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('yyyy.MM.dd')"') do set "utc8_date=%%a-%%b-%%c"
+for /f "tokens=1" %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('HH:mm:ss')"') do set "utc8_time=%%a"
+
 REM 创建日志文件
-for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
-set "log_file=srt_download_%dt:~0,8%_%dt:~8,6%.log"
+for /f "tokens=1" %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('yyyyMMdd_HHmmss')"') do set "timestamp=%%a"
+set "log_file=srt_download_%timestamp%.log"
 echo 📝 日志文件: %log_file%
 echo.
 
@@ -133,7 +138,7 @@ set /a error_count=0
 set /a total_count={len(video_ids)}
 
 REM 记录开始时间
-echo 🕐 开始时间: %date% %time% >> "%log_file%"
+echo 🕐 开始时间: %utc8_date% %utc8_time% CST >> "%log_file%"
 echo ======================================= >> "%log_file%"
 
 """
@@ -148,17 +153,21 @@ REM {num}. 视频ID: {video_id}
 echo [{index}/{len(video_ids)}] 处理视频: {video_id}
 echo 🔗 YouTube链接: https://www.youtube.com/watch?v={video_id}
 
+REM 获取当前UTC+8时间
+for /f "tokens=1-3 delims=." %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('yyyy.MM.dd')"') do set "current_date=%%a-%%b-%%c"
+for /f "tokens=1" %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('HH:mm:ss')"') do set "current_time=%%a"
+
 REM 执行curl命令
 curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content-Type: application/json" -d "{{\\\"youtube_id\\\":\\\"{video_id}\\\", \\\"fetch_only\\\": \\\"true\\\"}}" > temp_response.txt 2>&1
 
 if %errorlevel% equ 0 (
-    echo ✅ [{index}] 成功 [%date% %time%]
-    echo ✅ [{index}] 成功 [%date% %time%]: >> "%log_file%"
+    echo ✅ [{index}] 成功 [%current_date% %current_time% CST]
+    echo ✅ [{index}] 成功 [%current_date% %current_time% CST]: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a success_count+=1
 ) else (
-    echo ❌ [{index}] 失败 [%date% %time%]
-    echo ❌ [{index}] 失败 [%date% %time%]: >> "%log_file%"
+    echo ❌ [{index}] 失败 [%current_date% %current_time% CST]
+    echo ❌ [{index}] 失败 [%current_date% %current_time% CST]: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a error_count+=1
 )
@@ -171,9 +180,13 @@ timeout /t 1 /nobreak >nul
 """
 
     script += f"""
+REM 获取结束时间
+for /f "tokens=1-3 delims=." %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('yyyy.MM.dd')"') do set "end_date=%%a-%%b-%%c"
+for /f "tokens=1" %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('HH:mm:ss')"') do set "end_time=%%a"
+
 echo =======================================
 echo 🎉 处理完成！
-echo 🕐 结束时间: %date% %time% >> "%log_file%"
+echo 🕐 结束时间: %end_date% %end_time% CST >> "%log_file%"
 echo 📊 统计结果: >> "%log_file%"
 echo    总数: %total_count% >> "%log_file%"
 echo    成功: %success_count% >> "%log_file%"
@@ -196,8 +209,11 @@ Write-Host "🚀 开始处理 {len(video_ids)} 个YouTube视频的SRT..." -Foreg
 Write-Host "======================================="
 Write-Host ""
 
+# 设置中国时区 (UTC+8)
+$chinaTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("China Standard Time")
+
 # 创建日志文件
-$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$timestamp = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyyMMdd_HHmmss")
 $logFile = "srt_download_$timestamp.log"
 Write-Host "📝 日志文件: $logFile" -ForegroundColor Yellow
 Write-Host ""
@@ -208,8 +224,8 @@ $errorCount = 0
 $totalCount = {len(video_ids)}
 
 # 记录开始时间
-$startTime = Get-Date
-"🕐 开始时间: $startTime" | Add-Content -Path $logFile
+$startTime = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
+"🕐 开始时间: $startTime CST" | Add-Content -Path $logFile
 "=======================================" | Add-Content -Path $logFile
 
 """
@@ -231,15 +247,15 @@ try {{
     
     $response = Invoke-RestMethod -Uri "https://lic.deepsrt.cc/webhook/get-srt-from-provider" -Method POST -Headers $headers -Body $body
     
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Write-Host "✅ [{index}] 成功: $response [$timestamp]" -ForegroundColor Green
-    Add-Content -Path $logFile -Value "✅ [{index}] 成功: $response [$timestamp]"
+    $timestamp = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
+    Write-Host "✅ [{index}] 成功: $response [$timestamp CST]" -ForegroundColor Green
+    Add-Content -Path $logFile -Value "✅ [{index}] 成功: $response [$timestamp CST]"
     $successCount++
 }}
 catch {{
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Write-Host "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp]" -ForegroundColor Red
-    Add-Content -Path $logFile -Value "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp]"
+    $timestamp = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
+    Write-Host "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp CST]" -ForegroundColor Red
+    Add-Content -Path $logFile -Value "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp CST]"
     $errorCount++
 }}
 
@@ -253,8 +269,8 @@ Start-Sleep -Seconds 1
     script += f"""
 Write-Host "======================================="
 Write-Host "🎉 处理完成！" -ForegroundColor Green
-$endTime = Get-Date
-"🕐 结束时间: $endTime" | Add-Content -Path $logFile
+$endTime = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
+"🕐 结束时间: $endTime CST" | Add-Content -Path $logFile
 "📊 统计结果:" | Add-Content -Path $logFile
 "   总数: $totalCount" | Add-Content -Path $logFile
 "   成功: $successCount" | Add-Content -Path $logFile
@@ -301,8 +317,8 @@ def save_scripts(bash_script, windows_script, powershell_script, total_videos):
   PowerShell:  PowerShell -ExecutionPolicy Bypass -File download_srt_batch.ps1
 
 📊 输出示例:
-  ✅ [156] 成功: {{"status": "success"}} [2025-05-25 15:30:42]
-  ❌ [157] 失败 (HTTP 500): {{"error": "timeout"}} [2025-05-25 15:30:43]
+  ✅ [156] 成功: {{"status": "success"}} [2025-05-25 15:30:42 CST]
+  ❌ [157] 失败 (HTTP 500): {{"error": "timeout"}} [2025-05-25 15:30:43 CST]
   📊 进度: 155 成功, 2 失败, 剩余 201 个
   ⏱️  完成度: 44%
 
@@ -311,6 +327,7 @@ def save_scripts(bash_script, windows_script, powershell_script, total_videos):
   - 脚本会自动添加延迟避免请求过于频繁
   - 所有操作都会记录到日志文件中
   - 建议在执行前测试几个视频ID
+  - 所有时间戳均使用中国标准时间 (UTC+8 CST)
 """)
 
 if __name__ == "__main__":
