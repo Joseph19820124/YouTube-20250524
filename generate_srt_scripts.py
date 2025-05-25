@@ -81,7 +81,7 @@ response_body=$(echo "$response" | head -n -1)
 
 if [ "$http_code" = "200" ]; then
     # 检查是否返回 "not cached"
-    if echo "$response_body" | grep -q '"status":"not cached"'; then
+    if echo "$response_body" | grep -q '"not cached"'; then
         echo "⚠️  缓存未找到，开始重新生成SRT..."
         echo "⚠️  [{index}] 缓存未找到: $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
         
@@ -189,7 +189,7 @@ curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content
 
 if %errorlevel% equ 0 (
     REM 检查是否返回 "not cached"
-    findstr /C:"\\"status\\":\\"not cached\\"" temp_response.txt >nul
+    findstr /C:"\\"not cached\\"" temp_response.txt >nul
     if %errorlevel% equ 0 (
         echo ⚠️  缓存未找到，开始重新生成SRT...
         echo ⚠️  [{index}] 缓存未找到 [%current_date% %current_time% CST]: >> "%log_file%"
@@ -303,7 +303,7 @@ try {{
     $timestamp = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
     
     # 检查是否返回 "not cached"
-    if ($response1 -match '"status":"not cached"') {{
+    if ($response1 -match '"not cached"') {{
         Write-Host "⚠️  缓存未找到，开始重新生成SRT..." -ForegroundColor Yellow
         Add-Content -Path $logFile -Value "⚠️  [{index}] 缓存未找到: $response1 [$timestamp CST]"
         
