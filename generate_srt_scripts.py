@@ -236,18 +236,18 @@ Read-Host "按回车键退出"
 def save_scripts(bash_script, windows_script, powershell_script, total_videos):
     """保存脚本到文件"""
     
-    # 保存Bash脚本
-    with open('download_srt_batch.sh', 'w', encoding='utf-8', newline='\\n') as f:
+    # 保存Bash脚本 - 修复newline问题
+    with open('download_srt_batch.sh', 'w', encoding='utf-8') as f:
         f.write(bash_script)
     print(f"✅ 已生成 download_srt_batch.sh (Linux/Mac)")
     
     # 保存Windows批处理脚本
-    with open('download_srt_batch.bat', 'w', encoding='utf-8', newline='\\r\\n') as f:
+    with open('download_srt_batch.bat', 'w', encoding='utf-8') as f:
         f.write(windows_script)
     print(f"✅ 已生成 download_srt_batch.bat (Windows)")
     
     # 保存PowerShell脚本
-    with open('download_srt_batch.ps1', 'w', encoding='utf-8', newline='\\r\\n') as f:
+    with open('download_srt_batch.ps1', 'w', encoding='utf-8') as f:
         f.write(powershell_script)
     print(f"✅ 已生成 download_srt_batch.ps1 (PowerShell)")
     
