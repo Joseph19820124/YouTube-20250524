@@ -82,7 +82,7 @@ def get_recent_videos(count=50):
     
     fetcher = YouTubeVideoFetcher(API_KEY)
     
-    channel_id = 'w6mOctmFCvd1PZX6c3TSNXsao3Q'
+    channel_id = 'UCWZwfV3ICOt3uEPpW6hYK4g'
     
     print(f"正在获取频道最近的 {count} 个视频...")
     video_data = fetcher.get_channel_videos(channel_id, max_videos=count)
