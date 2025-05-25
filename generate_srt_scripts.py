@@ -68,7 +68,8 @@ echo "=======================================" | tee -a "$log_file"
 echo "[{index}/{len(video_ids)}] 处理视频: {video_id}"
 echo "🔗 YouTube链接: https://www.youtube.com/watch?v={video_id}"
 
-# 执行curl命令
+# 第一次执行curl命令 (fetch_only: true)
+echo "🔍 第一次尝试获取缓存..."
 response=$(curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider \\
     -H "Content-Type: application/json" \\
     -d '{{"youtube_id":"{video_id}", "fetch_only": "true"}}' \\
@@ -79,10 +80,35 @@ http_code=$(echo "$response" | tail -n1)
 response_body=$(echo "$response" | head -n -1)
 
 if [ "$http_code" = "200" ]; then
-    echo "✅ [{index}] 成功: $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
-    ((success_count++))
+    # 检查是否返回 "not cached"
+    if echo "$response_body" | grep -q '"status":"not cached"'; then
+        echo "⚠️  缓存未找到，开始重新生成SRT..."
+        echo "⚠️  [{index}] 缓存未找到: $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
+        
+        # 第二次执行curl命令 (fetch_only: false)
+        echo "🔄 第二次尝试生成SRT..."
+        response2=$(curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider \\
+            -H "Content-Type: application/json" \\
+            -d '{{"youtube_id":"{video_id}", "fetch_only": "false"}}' \\
+            -w "\\n%{{http_code}}")
+        
+        # 检查第二次响应状态
+        http_code2=$(echo "$response2" | tail -n1)
+        response_body2=$(echo "$response2" | head -n -1)
+        
+        if [ "$http_code2" = "200" ]; then
+            echo "✅ [{index}] 生成成功: $response_body2 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
+            ((success_count++))
+        else
+            echo "❌ [{index}] 生成失败 (HTTP $http_code2): $response_body2 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
+            ((error_count++))
+        fi
+    else
+        echo "✅ [{index}] 缓存成功: $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
+        ((success_count++))
+    fi
 else
-    echo "❌ [{index}] 失败 (HTTP $http_code): $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
+    echo "❌ [{index}] 请求失败 (HTTP $http_code): $response_body [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S %Z')]" | tee -a "$log_file"
     ((error_count++))
 fi
 
@@ -157,17 +183,43 @@ REM 获取当前UTC+8时间
 for /f "tokens=1-3 delims=." %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('yyyy.MM.dd')"') do set "current_date=%%a-%%b-%%c"
 for /f "tokens=1" %%a in ('powershell -command "(Get-Date).ToUniversalTime().AddHours(8).ToString('HH:mm:ss')"') do set "current_time=%%a"
 
-REM 执行curl命令
+REM 第一次执行curl命令 (fetch_only: true)
+echo 🔍 第一次尝试获取缓存...
 curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content-Type: application/json" -d "{{\\\"youtube_id\\\":\\\"{video_id}\\\", \\\"fetch_only\\\": \\\"true\\\"}}" > temp_response.txt 2>&1
 
 if %errorlevel% equ 0 (
-    echo ✅ [{index}] 成功 [%current_date% %current_time% CST]
-    echo ✅ [{index}] 成功 [%current_date% %current_time% CST]: >> "%log_file%"
-    type temp_response.txt >> "%log_file%"
-    set /a success_count+=1
+    REM 检查是否返回 "not cached"
+    findstr /C:"\\"status\\":\\"not cached\\"" temp_response.txt >nul
+    if %errorlevel% equ 0 (
+        echo ⚠️  缓存未找到，开始重新生成SRT...
+        echo ⚠️  [{index}] 缓存未找到 [%current_date% %current_time% CST]: >> "%log_file%"
+        type temp_response.txt >> "%log_file%"
+        
+        REM 第二次执行curl命令 (fetch_only: false)
+        echo 🔄 第二次尝试生成SRT...
+        curl -s -X POST https://lic.deepsrt.cc/webhook/get-srt-from-provider -H "Content-Type: application/json" -d "{{\\\"youtube_id\\\":\\\"{video_id}\\\", \\\"fetch_only\\\": \\\"false\\\"}}" > temp_response2.txt 2>&1
+        
+        if %errorlevel% equ 0 (
+            echo ✅ [{index}] 生成成功 [%current_date% %current_time% CST]
+            echo ✅ [{index}] 生成成功 [%current_date% %current_time% CST]: >> "%log_file%"
+            type temp_response2.txt >> "%log_file%"
+            set /a success_count+=1
+        ) else (
+            echo ❌ [{index}] 生成失败 [%current_date% %current_time% CST]
+            echo ❌ [{index}] 生成失败 [%current_date% %current_time% CST]: >> "%log_file%"
+            type temp_response2.txt >> "%log_file%"
+            set /a error_count+=1
+        )
+        del temp_response2.txt 2>nul
+    ) else (
+        echo ✅ [{index}] 缓存成功 [%current_date% %current_time% CST]
+        echo ✅ [{index}] 缓存成功 [%current_date% %current_time% CST]: >> "%log_file%"
+        type temp_response.txt >> "%log_file%"
+        set /a success_count+=1
+    )
 ) else (
-    echo ❌ [{index}] 失败 [%current_date% %current_time% CST]
-    echo ❌ [{index}] 失败 [%current_date% %current_time% CST]: >> "%log_file%"
+    echo ❌ [{index}] 请求失败 [%current_date% %current_time% CST]
+    echo ❌ [{index}] 请求失败 [%current_date% %current_time% CST]: >> "%log_file%"
     type temp_response.txt >> "%log_file%"
     set /a error_count+=1
 )
@@ -241,21 +293,49 @@ Write-Host "[{index}/{len(video_ids)}] 处理视频: {video_id}" -ForegroundColo
 Write-Host "🔗 YouTube链接: https://www.youtube.com/watch?v={video_id}"
 
 try {{
-    # 执行curl命令
+    # 第一次执行curl命令 (fetch_only: true)
+    Write-Host "🔍 第一次尝试获取缓存..." -ForegroundColor Yellow
     $headers = @{{"Content-Type" = "application/json"}}
-    $body = @{{"youtube_id" = "{video_id}"; "fetch_only" = "true"}} | ConvertTo-Json
+    $body1 = @{{"youtube_id" = "{video_id}"; "fetch_only" = "true"}} | ConvertTo-Json
     
-    $response = Invoke-RestMethod -Uri "https://lic.deepsrt.cc/webhook/get-srt-from-provider" -Method POST -Headers $headers -Body $body
+    $response1 = Invoke-RestMethod -Uri "https://lic.deepsrt.cc/webhook/get-srt-from-provider" -Method POST -Headers $headers -Body $body1
     
     $timestamp = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
-    Write-Host "✅ [{index}] 成功: $response [$timestamp CST]" -ForegroundColor Green
-    Add-Content -Path $logFile -Value "✅ [{index}] 成功: $response [$timestamp CST]"
-    $successCount++
+    
+    # 检查是否返回 "not cached"
+    if ($response1 -match '"status":"not cached"') {{
+        Write-Host "⚠️  缓存未找到，开始重新生成SRT..." -ForegroundColor Yellow
+        Add-Content -Path $logFile -Value "⚠️  [{index}] 缓存未找到: $response1 [$timestamp CST]"
+        
+        try {{
+            # 第二次执行curl命令 (fetch_only: false)
+            Write-Host "🔄 第二次尝试生成SRT..." -ForegroundColor Yellow
+            $body2 = @{{"youtube_id" = "{video_id}"; "fetch_only" = "false"}} | ConvertTo-Json
+            
+            $response2 = Invoke-RestMethod -Uri "https://lic.deepsrt.cc/webhook/get-srt-from-provider" -Method POST -Headers $headers -Body $body2
+            
+            $timestamp2 = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
+            Write-Host "✅ [{index}] 生成成功: $response2 [$timestamp2 CST]" -ForegroundColor Green
+            Add-Content -Path $logFile -Value "✅ [{index}] 生成成功: $response2 [$timestamp2 CST]"
+            $successCount++
+        }}
+        catch {{
+            $timestamp2 = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
+            Write-Host "❌ [{index}] 生成失败: $($_.Exception.Message) [$timestamp2 CST]" -ForegroundColor Red
+            Add-Content -Path $logFile -Value "❌ [{index}] 生成失败: $($_.Exception.Message) [$timestamp2 CST]"
+            $errorCount++
+        }}
+    }}
+    else {{
+        Write-Host "✅ [{index}] 缓存成功: $response1 [$timestamp CST]" -ForegroundColor Green
+        Add-Content -Path $logFile -Value "✅ [{index}] 缓存成功: $response1 [$timestamp CST]"
+        $successCount++
+    }}
 }}
 catch {{
     $timestamp = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $chinaTimeZone).ToString("yyyy-MM-dd HH:mm:ss")
-    Write-Host "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp CST]" -ForegroundColor Red
-    Add-Content -Path $logFile -Value "❌ [{index}] 失败: $($_.Exception.Message) [$timestamp CST]"
+    Write-Host "❌ [{index}] 请求失败: $($_.Exception.Message) [$timestamp CST]" -ForegroundColor Red
+    Add-Content -Path $logFile -Value "❌ [{index}] 请求失败: $($_.Exception.Message) [$timestamp CST]"
     $errorCount++
 }}
 
@@ -317,16 +397,18 @@ def save_scripts(bash_script, windows_script, powershell_script, total_videos):
   PowerShell:  PowerShell -ExecutionPolicy Bypass -File download_srt_batch.ps1
 
 📊 输出示例:
-  ✅ [156] 成功: {{"status": "success"}} [2025-05-25 15:30:42 CST]
-  ❌ [157] 失败 (HTTP 500): {{"error": "timeout"}} [2025-05-25 15:30:43 CST]
-  📊 进度: 155 成功, 2 失败, 剩余 201 个
-  ⏱️  完成度: 44%
+  🔍 第一次尝试获取缓存...
+  ⚠️  缓存未找到，开始重新生成SRT...
+  🔄 第二次尝试生成SRT...
+  ✅ [156] 生成成功: {{"status": "success"}} [2025-05-25 15:30:42 CST]
+  或
+  ✅ [157] 缓存成功: {{"status": "cached"}} [2025-05-25 15:30:43 CST]
 
 ⚠️  注意事项:
   - 请确保网络连接稳定
-  - 脚本会自动添加延迟避免请求过于频繁
+  - 脚本会自动处理缓存未命中的情况
+  - 如果缓存不存在，会自动尝试重新生成SRT
   - 所有操作都会记录到日志文件中
-  - 建议在执行前测试几个视频ID
   - 所有时间戳均使用中国标准时间 (UTC+8 CST)
 """)
 
