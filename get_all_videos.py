@@ -11,7 +11,7 @@ import time
 from youtube_video_fetcher import YouTubeVideoFetcher
 
 # 频道ID常量
-LIYONGLE_CHANNEL_ID = 'UCanFwnk3aOnfeRaYQfmWJ-g'  # 李永乐老师频道
+LIYONGLE_CHANNEL_ID = 'UCk5yPS6FfbJjeaY-PwczPvw'  # 11区小豪的故事 @11hao
 
 # SRT API 配置
 SRT_API_URL = 'https://lic.deepsrt.cc/webhook/get-srt-from-provider'
