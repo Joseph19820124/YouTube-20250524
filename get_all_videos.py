@@ -31,7 +31,7 @@ def get_all_channel_videos():
     fetcher = YouTubeVideoFetcher(API_KEY)
     
     # 李永乐老师频道
-    channel_id = 'UCPmbIdXZzLDHNR0PejH0iEQ'
+    channel_id = 'UCFTVNLC7ysej-sD5lkLqNGA'
     
     print(f"正在获取频道 {channel_id} 的所有视频...")
     print("这可能需要几分钟时间，请耐心等待...\n")
