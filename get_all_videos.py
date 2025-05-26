@@ -85,6 +85,9 @@ def batch_request_srt(video_data, max_requests=None, delay=1.0):
         # 发送请求
         result = request_srt_for_video(video_id, fetch_only=False)
         
+        # 打印请求结果
+        print(f"Request Result: {result}")
+        
         # 记录结果
         result_record = {
             'index': i,
