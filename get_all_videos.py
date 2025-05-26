@@ -7,6 +7,9 @@
 import os
 from youtube_video_fetcher import YouTubeVideoFetcher
 
+# 频道ID常量
+LIYONGLE_CHANNEL_ID = 'UCuDdJRJ6qR-wGILbpq-FXCw'  # 李永乐老师频道
+
 def get_api_key():
     """从环境变量获取API密钥"""
     api_key = os.getenv('YOUTUBE_API_KEY')
@@ -30,14 +33,11 @@ def get_all_channel_videos():
     
     fetcher = YouTubeVideoFetcher(API_KEY)
     
-    # 李永乐老师频道
-    channel_id = 'UCuDdJRJ6qR-wGILbpq-FXCw'
-    
-    print(f"正在获取频道 {channel_id} 的所有视频...")
+    print(f"正在获取频道 {LIYONGLE_CHANNEL_ID} 的所有视频...")
     print("这可能需要几分钟时间，请耐心等待...\n")
     
     # 获取所有视频（不设置max_videos限制）
-    video_data = fetcher.get_channel_videos(channel_id)
+    video_data = fetcher.get_channel_videos(LIYONGLE_CHANNEL_ID)
     
     if video_data:
         print(f"\n🎉 成功获取 {len(video_data)} 个视频!")
@@ -82,10 +82,8 @@ def get_recent_videos(count=50):
     
     fetcher = YouTubeVideoFetcher(API_KEY)
     
-    channel_id = 'UCWZwfV3ICOt3uEPpW6hYK4g'
-    
     print(f"正在获取频道最近的 {count} 个视频...")
-    video_data = fetcher.get_channel_videos(channel_id, max_videos=count)
+    video_data = fetcher.get_channel_videos(LIYONGLE_CHANNEL_ID, max_videos=count)
     
     if video_data:
         print(f"\n✅ 成功获取 {len(video_data)} 个视频!")
