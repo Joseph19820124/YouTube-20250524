@@ -80,6 +80,7 @@ def batch_request_srt(video_data, max_requests=None, delay=1.0):
         
         print(f"\n[{i:3d}/{total_videos}] 处理视频: {title}")
         print(f"Video ID: {video_id}")
+        print(f"Published At: {video['published_at']}")
         
         # 发送请求
         result = request_srt_for_video(video_id, fetch_only=False)
