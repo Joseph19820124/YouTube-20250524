@@ -143,6 +143,7 @@ def request_srt_for_video(video_id, fetch_only=False):
         }
         
         response = requests.post(SRT_API_URL, headers=headers, json=payload, timeout=30)
+
         
         if response.status_code == 200:
             return {"success": True, "data": response.json(), "status_code": response.status_code}
@@ -186,6 +187,9 @@ def batch_request_srt(video_data, channel_info, max_requests=None, delay=1.0):
         
         # 发送请求
         result = request_srt_for_video(video_id, fetch_only=False)
+        
+        # 打印请求结果
+        print(f"Request Result: {result}")
         
         # 记录结果
         result_record = {
