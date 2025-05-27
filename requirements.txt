@@ -1,1 +1,9 @@
-google-api-python-client>=2.0.0
+# YouTube频道数据获取工具依赖
+requests>=2.31.0
+gspread>=5.10.0
+google-auth>=2.22.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.1
+
+# 注意：youtube_video_fetcher 应该是项目中的本地模块
+# 如果这是一个外部库，请在这里添加正确的包名和版本
